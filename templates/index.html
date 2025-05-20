@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Salomon Tu Amigo</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='logo.png') }}" type="image/png">
+</head>
+
+<body>
+
+    <div class="chat-with-banner">
+            <div class="side-banner">
+                <img src="{{ url_for('static', filename='COSTADO.jpg') }}" alt="Salomón Mendoza" />
+            </div>
+        
+            <div class="chat-section">
+                <div class="topbar">
+                    <div class="title">Salomón AI Contable</div>
+                    <div class="topbar-buttons">
+                        <button class="btn-clear" onclick="clearChat()">🗑 Limpiar Chat</button>
+                    </div>
+                </div>
+
+
+
+
+                <div class="chat-container">
+                    <div class="chat-box-area"></div>
+                    <div id="chat-box" class="chat-box"></div>
+                    <div class="input-box">
+                        <input type="text" id="user-input" placeholder="Escriba una pregunta nueva..." />
+                        <button onclick="sendMessage()">➤</button>
+                    </div>
+                </div>
+    </div>
+</div>
+
+
+
+
+
+    <script>
+        window.onload = function () {
+            const chatBox = document.getElementById("chat-box");
+            chatBox.innerHTML = `
+                    <div id="welcome-message" class="message-row bot">
+                        <img class="avatar bot-avatar" src="/static/icon_salomon.jpg" alt="Bot" />
+                        <div class="bot-message-block">
+                            <div class="message bot">¡Hola! Soy <strong>Salomón AI Contable </strong> 🤖. Estoy aquí para ayudarte con temas contables.
+                                <p>Porque ya es hora de dejar las promesas en el aire…💬 Menos bla bla bla</p>
+                                <center> <p> <strong>  Más TU: Trabajo y Unidad, con acciones reales. </strong></p> </center>
+                                <p>En la Carrera de Contaduría Pública, necesitamos hechos, no discursos. </p>
+                               <center><p> ✅ Actividades</p>
+                                <p>✅ Compromiso </p>
+                                <p>✅ Resultados </p></center>
+                                </div>
+                        </div>
+                    </div>`;
+            // Mensaje 2: después de 1 segundo
+            setTimeout(() => {
+                chatBox.innerHTML += `
+            <div id="welcome-message-2" class="message-row bot">
+                <img class="avatar bot-avatar" src="/static/icon_salomon.jpg" alt="Bot" />
+                <div class="bot-message-block">
+                    <div class="message bot"><p>¿En qué puedo ayudarte hoy?</p></div>
+                </div>
+            </div>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }, 1000);
+
+
+        };
+
+
+        async function sendMessage() {
+            const input = document.getElementById("user-input");
+            const chatBox = document.getElementById("chat-box");
+            const message = input.value;
+            if (!message) return;
+
+            // Mostrar mensaje del usuario
+            chatBox.innerHTML += `
+            <div class="message-row user">
+                <img class="avatar user-avatar" src="/static/user.png" alt="Usuario" />
+                <div class="message user">${message}</div>
+            </div>`;
+
+            input.value = "";
+
+
+            // Añadir mensaje "escribiendo..." del bot
+            const loadingId = `loading-${Date.now()}`;
+            chatBox.innerHTML += `
+                    <div id="${loadingId}" class="message-row bot">
+                        <img class="avatar bot-avatar" src="/static/icon_salomon.jpg" alt="Bot" />
+                        <div class="bot-message-block">
+                            <div class="message bot typing">
+                            <span class="dot"></span>
+                            <span class="dot"></span>
+                            <span class="dot"></span>
+                            </div>
+                        </div>
+                    </div>
+                    `;
+
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+
+            // Solicitud al backend principal /ask
+            const response = await fetch("/ask", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message })
+            });
+            const data = await response.json(); // Contiene data.answer
+
+            // Solicitud al backend /suggest
+            const suggestionsResponse = await fetch("/suggest", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message })
+            });
+            const suggestionsData = await suggestionsResponse.json();
+            const suggestions = suggestionsData.suggested_options.slice(0, 3);
+
+            // Generar botones de sugerencia
+            //const suggestionButtons = suggestions.map(text => `<button>⚙️ ${text}</button>`).join("");
+            const suggestionButtons = suggestions.map(text => `<button onclick="sendMessageWithText('${text}')">⚙️ ${text}</button>`).join("");
+
+            // Mostrar respuesta del bot + sugerencias
+            chatBox.innerHTML += `
+            <div class="message-row bot">
+                <img class="avatar bot-avatar" src="/static/icon_salomon.jpg" alt="Bot" />
+                <div class="bot-message-block">
+                    <div class="message bot">${data.answer}</div>
+                    <div class="options">
+                        ${suggestionButtons}
+                    </div>
+                </div>
+            </div>`;
+
+            document.getElementById(loadingId)?.remove();
+
+            // Scroll automático
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+        }
+        function sendMessageWithText(text) {
+            document.getElementById("user-input").value = text;
+            sendMessage();
+        }
+
+        function clearChat() {
+            const chatBox = document.getElementById("chat-box");
+            chatBox.innerHTML = `
+                <div id="welcome-message" class="message-row bot">
+                    <img class="avatar bot-avatar" src="/static/icon_salomon.jpg" alt="Bot" />
+                    <div class="bot-message-block">
+                        <div class="message bot">¡Hola! Soy <strong>Salomón AI</strong> 🤖. Estoy aquí para ayudarte con temas contables. ¿En qué puedo ayudarte hoy?</div>
+                    </div>
+                </div>`;
+        }
+
+    </script>
+
+</body>
+
+</html>
